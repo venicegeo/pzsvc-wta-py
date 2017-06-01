@@ -1,4 +1,4 @@
 #! /bin/bash
 
-APP=pzsvc-ndwi
+APP=pzsvc-wta
 EXT=tgz
