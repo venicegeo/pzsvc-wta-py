@@ -5,10 +5,10 @@ node ("sl61") {
 
   stage("PZSVC Deps Security Scans") {
     deleteDir()
-    sh "mkdir -p pzsvc-ndwi-repo"
-    dir("pzsvc-ndwi-repo") {
+    sh "mkdir -p pzsvc-wta-repo"
+    dir("pzsvc-wta-repo") {
 
-      git url: "https://github.com/venicegeo/pzsvc-ndwi-py.git", branch: "pipeline-refactor"
+      git url: "https://github.com/venicegeo/pzsvc-wta-py.git", branch: "pipeline-refactor"
         sh "git submodule init"
         sh "git submodule update --recursive"
         withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
@@ -26,13 +26,13 @@ node ("sl61") {
                 }
               },
               bfalgscan: {
-                dir("./bfalg-ndwi") {
+                dir("./bfalg_wta") {
                   // **Fortify**
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./bfalg_ndwi/{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
+                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./bfalg_wta/{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
                   sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/92/upload?apiKey=$THREADFIXKEY"
                   // **OWASP**
-                  sh '/opt/dependency-check/bin/dependency-check.sh --project "Bfalg-ndwi" --scan "." --format "XML" --enableExperimental'
+                  sh '/opt/dependency-check/bin/dependency-check.sh --project "bfalg_wta" --scan "." --format "XML" --enableExperimental'
                   sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/92/upload?apiKey=$THREADFIXKEY"
                 }
               },
@@ -77,15 +77,15 @@ node ("sl61") {
 
 
   stage("Conda Build") {
-    dir("pzsvc-ndwi-repo/docker") {
+    dir("pzsvc-wta-repo/docker") {
       sh "docker-compose rm -f --all"
       sh "docker-compose up --build --no-color"
     }
   }
 
-  stage("Nexus Deploy pzsvc-ndwi") {
+  stage("Nexus Deploy pzsvc-wta") {
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'ldap_baxtersh', usernameVariable: 'NEXUSUSER', passwordVariable: 'NEXUSPASS']]) {
-        dir("pzsvc-ndwi-repo/docker/out/conda-bld") {
+        dir("pzsvc-wta-repo/docker/out/conda-bld") {
         sh """
            for f in \$(find . -type f); do
               curl -T "\$f" -u \$NEXUSUSER:\$NEXUSPASS https://nexus.devops.geointservices.io/content/sites/beachfront-conda/\$f
@@ -97,7 +97,7 @@ node ("sl61") {
 
   stage("L2 Deploy") {
     // Do Cloudfoundry Push
-    dir("pzsvc-ndwi-repo") {
+    dir("pzsvc-wta-repo") {
       if(!fileExists('.cf')) {
         sh "mkdir -p .cf"
       }
@@ -115,7 +115,7 @@ node ("sl61") {
     //    cfOrg = 'Optimus'
     //    cfProject = 'pz'
     //    cfApi = 'https://api.system.dev.east.paas.geointservices.io'
-    //    cfApp = 'pzsvc-ndwi'
+    //    cfApp = 'pzsvc-wta'
     //    cfDomain = 'east.paas.geointservices.io'
     //  }
     }
