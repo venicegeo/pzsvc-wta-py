@@ -39,7 +39,7 @@ node ("sl61") {
               beachfront: {
                 dir("./beachfront-py") {
                   // **Fortify**
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b -scan ${env.BUILD_NUMBER} ./beachfront/{*.py,**/*.py} -exclude **/test/*"
+                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -scan -b ${env.BUILD_NUMBER} ./beachfront/{*.py,**/*.py} -exclude **/test/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
                   //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/91/upload?apiKey=$THREADFIXKEY"
                   // **OWASP**
