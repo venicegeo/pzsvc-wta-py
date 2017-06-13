@@ -5,7 +5,7 @@ applications:
   buildpack: https://github.com/cloudfoundry/buildpack-python.git
   health_check_type: process
   memory: 4096M
-  disk_quota: 6047MB
+  disk_quota: 2047MB
   env:
     PATH: "/home/vcap/app/.conda/envs/dep_env/bin:/bin:/usr/bin"
     PZ_ADDR: 'REPLACE_ME'
