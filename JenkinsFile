@@ -107,7 +107,7 @@ node ("sl61") {
           sh "cf api https://api.devops.geointservices.io"
           sh "cf auth  \$CFUSER \$CFPASS"
           // sh "cf target -o Optimus -s pz-dev"
-          sh "cf target -o piazza -s dev"
+          sh "cf target -o piazza -s int"
           sh "cf push -b https://github.com/cloudfoundry/buildpack-python.git --health-check-type none"
         }
       }
