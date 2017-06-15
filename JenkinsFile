@@ -108,7 +108,7 @@ node ("sl61") {
           sh "cf auth  \$CFUSER \$CFPASS"
           // sh "cf target -o Optimus -s pz-dev"
           sh "cf target -o piazza -s int"
-          sh "cf push -b https://github.com/cloudfoundry/buildpack-python.git --health-check-type none"
+          sh "cf push -b https://github.com/cloudfoundry/buildpack-python.git --random-route --health-check-type none"
         }
       }
     // We can use this when pipelib 0.3.0 is done
