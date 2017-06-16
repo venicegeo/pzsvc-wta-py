@@ -103,11 +103,11 @@ node ("sl61") {
       }
       withEnv(['CF_HOME=.cf']) {
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'ldap_baxtersh', usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-          sh "cf api http://api.system.dev.east.paas.geointservices.io"
-          // sh "cf api https://api.devops.geointservices.io"
+          //sh "cf api http://api.system.dev.east.paas.geointservices.io"
+           sh "cf api https://api.devops.geointservices.io"
           sh "cf auth  \$CFUSER \$CFPASS"
-           sh "cf target -o Optimus -s pz-dev"
-          //sh "cf target -o piazza -s int"
+          // sh "cf target -o Optimus -s pz-dev"
+          sh "cf target -o piazza -s int"
           sh "cf push -b https://github.com/cloudfoundry/buildpack-python.git --random-route --health-check-type none"
         }
       }
