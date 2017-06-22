@@ -2,7 +2,7 @@
 
 echo "Starting conda build..."
 export PATH="$HOME/miniconda2/bin:$PATH"
-pushd `dirname $0`/pzsvc-wta-repo > /dev/null
+pushd `dirname $0`/pzsvc-ndwi-repo > /dev/null
 root=$(pwd -P)
 echo "***Updating conda..***"
 conda update -n root conda-build -y
