@@ -3,8 +3,8 @@ package:
   version: 0.1.0
 
 source:
-  # https://github.com/venicegeo/bfalg-ndwi/archive/develop.zip
-  path: ../vendor/bfalg-ndwi
+  # https://github.com/venicegeo/binary-wta-py-buildpack/blob/master/vendor/deploy.zip
+  path: ../vendor/bfalg-wta
 requirements:
   build:
     - gcc
@@ -33,6 +33,6 @@ build:
   #binary_relocation: False
 
 about:
-  home: https://github.com/venicegeo/bfalg-ndwi
+  home: https://github.com/venicegeo/bfalg_wta
   summary: "A library and a CLI for running shoreline detection "
   license: Apache 2.0
