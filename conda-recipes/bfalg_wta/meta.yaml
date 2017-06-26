@@ -4,7 +4,7 @@ package:
 
 source:
   # https://github.com/venicegeo/binary-wta-py-buildpack/blob/master/vendor/deploy.zip
-  path: ../vendor/bfalg-wta
+  path: ../vendor/bfalg_wta
 requirements:
   build:
     - gcc
