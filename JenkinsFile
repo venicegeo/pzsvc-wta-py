@@ -17,7 +17,9 @@ node ("sl61") {
               gippyscan: {
                 dir("./gippy") {
                   // **Fortify**
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -scan -b ${env.BUILD_NUMBER} ./gippy/{*.py,**/*.py} -exclude **/test/* -exclude **/docker/*"
+                  sh "pwd"
+                  sh "ls -al"
+                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./gippy/{*.py,**/*.py} -exclude **/test/* -exclude **/docker/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
                   //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/93/upload?apiKey=$THREADFIXKEY"
                   // **OWASP**
@@ -28,7 +30,7 @@ node ("sl61") {
               bfalgscan: {
                 dir("./bfalg_wta") {
                   // **Fortify**
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -scan -b ${env.BUILD_NUMBER} ./bfalg_wta/{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
+                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./bfalg_wta/{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
                   //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/92/upload?apiKey=$THREADFIXKEY"
                   // **OWASP**
@@ -39,7 +41,7 @@ node ("sl61") {
               beachfront: {
                 dir("./beachfront-py") {
                   // **Fortify**
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -scan -b ${env.BUILD_NUMBER} ./beachfront/{*.py,**/*.py} -exclude **/test/*"
+                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./beachfront/{*.py,**/*.py} -exclude **/test/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
                   //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/91/upload?apiKey=$THREADFIXKEY"
                   // **OWASP**
