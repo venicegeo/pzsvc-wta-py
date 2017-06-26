@@ -48,14 +48,15 @@ node ("sl61") {
                   sh '/opt/dependency-check/bin/dependency-check.sh --project "Beachfront Py" --scan "." --format "XML" --enableExperimental'
                   //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/91/upload?apiKey=$THREADFIXKEY"
                 }
-              },
-              pzsvcexec: {
-                dir("./pzsvc-exec") {
-                 // **OWASP**
-                 sh '/opt/dependency-check/bin/dependency-check.sh --project "PSVC Exec" --scan "." --format "XML" --enableExperimental'
-                //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/94/upload?apiKey=$THREADFIXKEY"
                 }
-              }
+             // },
+             // pzsvcexec: {
+               // dir("./pzsvc-exec") {
+                 // **OWASP**
+               //  sh '/opt/dependency-check/bin/dependency-check.sh --project "PSVC Exec" --scan "." --format "XML" --enableExperimental'
+                //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/94/upload?apiKey=$THREADFIXKEY"
+               // }
+             // }
             )
           }
         }
