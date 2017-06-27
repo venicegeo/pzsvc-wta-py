@@ -1,13 +1,9 @@
 #!/usr/bin/groovy
-//@Library('pipelib@v0.2.4') _
-
 node {
-
   stage("PZSVC Deps Security Scans") {
     deleteDir()
     sh "mkdir -p pzsvc-wta-repo"
     dir("pzsvc-wta-repo") {
-
       git url: "https://github.com/venicegeo/pzsvc-wta-py.git", branch: "master"
         sh "git submodule init"
         sh "git submodule update --recursive"
@@ -65,7 +61,6 @@ node {
         }
     }
   }
-
   stage("PZSVC Scans Pass/Fail") {
     sh "mkdir -p sspf-repo"
     dir("./sspf-repo") {
@@ -80,15 +75,12 @@ node {
       }
     }
   }
-
-
   stage("Conda Build") {
     dir("pzsvc-wta-repo/docker") {
       sh "docker-compose rm -f --all"
       sh "docker-compose up --build --no-color"
     }
   }
-
   stage("Nexus Deploy pzsvc-wta") {
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'ldap_baxtersh', usernameVariable: 'NEXUSUSER', passwordVariable: 'NEXUSPASS']]) {
         dir("pzsvc-wta-repo/docker/out/conda-bld") {
@@ -100,7 +92,6 @@ node {
       }
     }
   }
-
   stage("L2 Deploy") {
     // Do Cloudfoundry Push
     dir("pzsvc-wta-repo") {
