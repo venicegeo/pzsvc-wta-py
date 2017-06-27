@@ -1,7 +1,7 @@
 #!/usr/bin/groovy
 //@Library('pipelib@v0.2.4') _
 
-//node ("sl61") {
+node {
 
   stage("PZSVC Deps Security Scans") {
     deleteDir()
