@@ -28,6 +28,8 @@ node {
                 dir("./bfalg_wta") {
                   // **Fortify**
                   sh "pwd"
+                  sh "ls -al"
+                  sh "ls WTA/* -l"
                   // sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./bfalg_wta/{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./bfalg_wta/WTA/bfalg_WTA.py -exclude **/test/* -exclude **/deploy/*"
                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
