@@ -40,7 +40,7 @@ node {
                 }
               },
               beachfront: {
-                dir("./beachfront") {
+                dir("./beachfront-py") {
                   // **Fortify**
                   sh "pwd"
                   sh "ls -al"
