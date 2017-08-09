@@ -1,10 +1,6 @@
 name: pzsvc-wta
 channels:
-  #- http://192.168.33.90
-  - https://proxy:proxy@nexus.devops.geointservices.io/content/sites/beachfront-conda/
-  - conda-forge
-  - bioconda
-  - defaults
+  - CONDA_CHANNEL
 dependencies:
 - cython
 - numpy

@@ -1,127 +1,86 @@
 #!/usr/bin/groovy
+
 node {
-  stage("PZSVC Deps Security Scans") {
-    deleteDir()
-    sh "mkdir -p pzsvc-wta-repo"
-    dir("pzsvc-wta-repo") {
-      git url: "https://github.com/venicegeo/pzsvc-wta-py.git", branch: "master"
-        sh "git submodule init"
-        sh "git submodule update --recursive"
-        sh "pwd"
-        sh "ls -al"
-        withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
-          dir("./conda-recipes/vendor") {
-            parallel(
-              gippyscan: {
-                dir("./gippy") {
-                  // **Fortify**
-                  sh "pwd"
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py} -exclude **/test/* -exclude **/docker/*"
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-                  //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/93/upload?apiKey=$THREADFIXKEY"
-                  // **OWASP**
-                  sh '/opt/dependency-check/bin/dependency-check.sh --project "Gippy" --scan "." --format "XML" --enableExperimental'
-                  //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/93/upload?apiKey=//$THREADFIXKEY"
+	def root = pwd()
+
+	  stage("Setup") {
+			deleteDir()
+			if(env.GITLAB_CREDS) {
+			  	git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+			} else {
+			  	git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
+			}
+	  }
+
+	def appvers = sh(script: """git describe --long --tags --always | sed 's/\\./-/'g""", returnStdout: true).trim()
+    def appName = "pzsvc-snowflake-wta-${appvers}"
+
+	stage("Archive") {
+		//todo
+	}
+
+
+    stage("Phase One Deploy") {
+        if(!fileExists('.cf')) {
+            sh "mkdir -p .cf"
+        }
+        def piazza_api_key = "empty"
+        def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_SPACE}.${env.PIAZZA_URL}"
+        /*withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
+            def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
+            piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
+            sh """
+              if [ -z $piazza_api_key ]; then
+                echo "No Piazza API key found"
+                exit 1
+              fi
+            """
+        }*/
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.ARTIFACT_STORAGE_CREDS}", usernameVariable: "USER", passwordVariable: "PASS"]]) {
+            sh 'sed -i "s*CONDA_CHANNEL*`echo $CONDA_CHANNEL | sed -e "s/NEXUSUSER/${USER}/g" | sed -e "s/NEXUSPASS/${PASS}/g"`*g" environment.yml'
+        }
+        withEnv([
+          "CF_HOME=.cf"
+        ]) {
+            withCredentials([
+              [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
+            ]) {
+                sh """
+                  cf api ${env.PCF_API_ENDPOINT}
+                  cf auth ${CFUSER} ${CFPASS}
+                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
+                  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -d ${env.PHASE_ONE_PCF_DOMAIN} -b ${env.PYTHON_BUILDPACK_NAME} --no-start -u none
+                  cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}
+                  cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
+                  cf set-env ${appName} PZ_API_KEY ${piazza_api_key}
+                  cf set-env ${appName} PZ_ADDR ${piazza_url}
+                  cf restage ${appName}
+                """
+
+                try {
+                  sh "cf start ${appName}"
+                } catch (Exception e) {
+                  //sh "cf logs --recent ${appName}"
+                  sh "cf delete ${appName} -f"
+                  error("Error during application start. Deleting ${appName} and failing the build.")
                 }
-              },
-              bfalgscan: {
-                dir("./bfalg_wta") {
-                  // **Fortify**
-                  sh "pwd"
-                  sh "ls -al"
-                  sh "ls WTA/* -l"
-                   sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py} -exclude **/test/* -exclude **/deploy/*"
-                  //sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./WTA/bfalg_WTA.py -exclude **/test/* -exclude **/deploy/*"
-                  sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-                  //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/92/upload?apiKey=$THREADFIXKEY"
-                  // **OWASP**
-                  sh '/opt/dependency-check/bin/dependency-check.sh --project "bfalg_wta" --scan "." --format "XML" --enableExperimental'
-                  //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/92/upload?apiKey=$THREADFIXKEY"
+                sh """
+                  cf api ${env.PCF_API_ENDPOINT}
+                  cf auth ${CFUSER} ${CFPASS}
+                  cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
+                """
+                def legacyAppNames = sh(script: """cf routes | grep \"pzsvc-snowflake-wta \" | awk '{print \$4}'""", returnStdout: true)
+                sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname pzsvc-snowflake-wta"
+                // Remove legacy applications
+                for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+                    def legacyAppName = legacyApp.toString().trim()
+                    if(legacyAppName != appName) {
+                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname ${legacyAppName}"
+                        sh "cf delete -f ${legacyAppName}"
+                    }
                 }
-                }
-              //},
-             // beachfront: {
-             //   dir("./beachfront-py") {
-             //     // **Fortify**
-             //     sh "pwd"
-             //     sh "ls -al"
-             //     sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER} ./{*.py,**/*.py, **/**/*.py} -exclude **/test/*"
-             //     sh "/opt/hp_fortify_sca/bin/sourceanalyzer -b ${env.BUILD_NUMBER}  -scan -Xmx8G -f fortifyResults-${env.BUILD_NUMBER}.fpr"
-             //     //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@fortifyResults-${env.BUILD_NUMBER}.fpr https://threadfix.devops.geointservices.io/rest/applications/91/upload?apiKey=$THREADFIXKEY"
-             //     // **OWASP**
-             //     sh '/opt/dependency-check/bin/dependency-check.sh --project "Beachfront Py" --scan "." --format "XML" --enableExperimental'
-             //     //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/91/upload?apiKey=$THREADFIXKEY"
-             //   }
-             //   }
-             // },
-             // pzsvcexec: {
-               // dir("./pzsvc-exec") {
-                 // **OWASP**
-               //  sh '/opt/dependency-check/bin/dependency-check.sh --project "PSVC Exec" --scan "." --format "XML" --enableExperimental'
-                //sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@dependency-check-report.xml https://threadfix.devops.geointservices.io/rest/applications/94/upload?apiKey=$THREADFIXKEY"
-               // }
-             // }
-            )
-          }
+            }
         }
     }
-  }
-  stage("PZSVC Scans Pass/Fail") {
-    sh "mkdir -p sspf-repo"
-    dir("./sspf-repo") {
-      git url: "https://github.com/venicegeo/sspf"
-      dir("./sspf") {
-        withCredentials([[$class: 'StringBinding', credentialsId: '978C467A-2B26-47AE-AD2F-4AFD5A4AF695', variable: 'THREADFIXKEY']]) {
-          //sh "curl  --fail --silent 'https://threadfix.devops.geointservices.io/rest/applications/94?apiKey=$THREADFIXKEY' | ./sspf.py"
-          //sh "curl  --fail --silent 'https://threadfix.devops.geointservices.io/rest/applications/93?apiKey=$THREADFIXKEY' | ./sspf.py"
-          //sh "curl  --fail --silent 'https://threadfix.devops.geointservices.io/rest/applications/92?apiKey=$THREADFIXKEY' | ./sspf.py"
-          //sh "curl  --fail --silent 'https://threadfix.devops.geointservices.io/rest/applications/91?apiKey=$THREADFIXKEY' | ./sspf.py"
-        }
-      }
-    }
-  }
-  stage("Conda Build") {
-    dir("pzsvc-wta-repo/docker") {
-      sh "docker-compose rm -f --all"
-      sh "docker-compose up --build --no-color"
-    }
-  }
-  stage("Nexus Deploy pzsvc-wta") {
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'ldap_baxtersh', usernameVariable: 'NEXUSUSER', passwordVariable: 'NEXUSPASS']]) {
-        dir("pzsvc-wta-repo/docker/out/conda-bld") {
-        sh """
-           for f in \$(find . -type f); do
-              curl -T "\$f" -u \$NEXUSUSER:\$NEXUSPASS https://nexus.devops.geointservices.io/content/sites/beachfront-conda/\$f
-           done
-           """
-      }
-    }
-  }
-  stage("L2 Deploy") {
-    // Do Cloudfoundry Push
-    dir("pzsvc-wta-repo") {
-      if(!fileExists('.cf')) {
-        sh "mkdir -p .cf"
-      }
-      withEnv(['CF_HOME=.cf']) {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'ldap_baxtersh', usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-          sh "cf api http://api.system.dev.east.paas.geointservices.io"
-          // sh "cf api https://api.devops.geointservices.io"
-          sh "cf auth  \$CFUSER \$CFPASS"
-          sh "cf target -o Optimus -s pz-dev"
-          // sh "cf target -o piazza -s int"
-          sh "cf push -b https://github.com/cloudfoundry/buildpack-python.git --random-route --health-check-type none"
-        }
-      }
-    // We can use this when pipelib 0.3.0 is done
-    //  cfPush {
-    //    cfTarget = 'dev'
-    //    cfOrg = 'Optimus'
-    //    cfProject = 'pz'
-    //    cfApi = 'https://api.system.dev.east.paas.geointservices.io'
-    //    cfApp = 'pzsvc-wta'
-    //    cfDomain = 'east.paas.geointservices.io'
-    //  }
-    }
-  }
+
 }
