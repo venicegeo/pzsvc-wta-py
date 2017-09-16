@@ -1,5 +1,3 @@
-#!/usr/bin/groovy
-
 node {
 	def root = pwd()
 
@@ -13,7 +11,12 @@ node {
 	  }
 
 	def appvers = sh(script: """git describe --long --tags --always | sed 's/\\./-/'g""", returnStdout: true).trim()
-    def appName = "pzsvc-snowflake-wta-${appvers}"
+    def appName = "pzsvc-wta-${appvers}"
+    
+    def apiEndpoint = "https://api.system.dev.east.paas.geointservices.io"
+    def domain = "dev.east.paas.geointservices.io"
+    def space = "pz-dev"
+    def org = "Optimus"
 
 	stage("Archive") {
 		//todo
@@ -26,7 +29,7 @@ node {
         }
         def piazza_api_key = "empty"
         def piazza_url = "https://piazza.${env.PHASE_ONE_PCF_SPACE}.${env.PIAZZA_URL}"
-        /*withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${params.BEACHFRONT_PIAZZA_AUTH}", usernameVariable: 'TOKEN', passwordVariable: 'unused']]) {
             def keyCurl = sh(script: """curl -s ${piazza_url}/v2/key -u \"${TOKEN}:\"""", returnStdout: true)
             piazza_api_key = sh(script: """echo \"${keyCurl}\"|grep -oE '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}'""", returnStdout: true).trim()
             sh """
@@ -35,7 +38,7 @@ node {
                 exit 1
               fi
             """
-        }*/
+        }
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.ARTIFACT_STORAGE_CREDS}", usernameVariable: "USER", passwordVariable: "PASS"]]) {
             sh 'sed -i "s*CONDA_CHANNEL*`echo $CONDA_CHANNEL | sed -e "s/NEXUSUSER/${USER}/g" | sed -e "s/NEXUSPASS/${PASS}/g"`*g" environment.yml'
         }
@@ -46,10 +49,10 @@ node {
               [$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: "CFUSER", passwordVariable: "CFPASS"]
             ]) {
                 sh """
-                  cf api https://api.system.dev.east.paas.geointservices.io
+                  cf api ${apiEndpoint}
                   cf auth ${CFUSER} ${CFPASS}
-                  cf target -o Optimus -s pz-dev
-                  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -b ${env.PYTHON_BUILDPACK_NAME} --no-start -u none
+                  cf target -o ${org} -s ${space}
+                  cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -d ${domain} -b https://github.com/cloudfoundry/python-buildpack#v1.5.18  --no-start -u none
                   cf set-env ${appName} PZ_API_KEY ${piazza_api_key}
                   cf set-env ${appName} PZ_ADDR ${piazza_url}
                 """
@@ -58,22 +61,22 @@ node {
                   sh "cf start ${appName}"
                 } catch (Exception e) {
                   //sh "cf logs --recent ${appName}"
-                  sh "cf delete ${appName} -f"
+                  sh "cf delete ${appName} -f -r"
                   error("Error during application start. Deleting ${appName} and failing the build.")
                 }
                 sh """
-                  cf api https://api.system.dev.east.paas.geointservices.io
+                  cf api ${apiEndpoint}
                   cf auth ${CFUSER} ${CFPASS}
-                  cf target -o Optimus -s pz-dev
+                  cf target -o ${org} -s ${space}
                 """
-                def legacyAppNames = sh(script: """cf routes | grep \"pzsvc-snowflake-wta \" | awk '{print \$4}'""", returnStdout: true)
-                sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname pzsvc-snowflake-wta"
+                def legacyAppNames = sh(script: """cf routes | grep \"pzsvc-wta \" | awk '{print \$4}'""", returnStdout: true)
+                sh "cf map-route ${appName} ${domain} --hostname pzsvc-wta"
                 // Remove legacy applications
                 for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
                     def legacyAppName = legacyApp.toString().trim()
                     if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname ${legacyAppName}"
-                        sh "cf delete -f ${legacyAppName}"
+                        sh "cf unmap-route ${legacyAppName} ${domain} --hostname pzsvc-wta"
+                        sh "cf delete -f ${legacyAppName} -r"
                     }
                 }
             }
