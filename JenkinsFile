@@ -1,3 +1,5 @@
+#!/usr/bin/groovy
+
 node {
 	def root = pwd()
 
@@ -17,11 +19,6 @@ node {
     def domain = "dev.east.paas.geointservices.io"
     def space = "pz-dev"
     def org = "Optimus"
-
-	stage("Archive") {
-		//todo
-	}
-
 
     stage("Phase One Deploy") {
         if(!fileExists('.cf')) {
